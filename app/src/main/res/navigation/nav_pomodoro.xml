@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:startDestination="@id/pomodoroFragment">
+
+    <fragment
+        android:id="@+id/pomodoroFragment"
+        android:name="com.capstone.pomodoro.ui.pomodoro.PomodoroFragment"
+        android:label="Pomodoro"
+        tools:layout="@layout/fragment_pomodoro" />
+
+    <!-- Add other fragments related to PomodoroActivity here -->
+
+</navigation>
