@@ -154,32 +154,41 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
                         "High" -> holder.priorityIndicator.setBackgroundResource(R.drawable.circle_high_priority)
                     }
 
-                    // Check if the task date has passed (older than one day)
+                    // Parse the task date (MM/dd/yyyy format)
                     val taskDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(task.date) ?: Date()
+
+// Get the current date
                     val currentDate = Date()
                     val calendar = Calendar.getInstance()
+
+// Set to the start of today (00:00:00)
                     calendar.time = currentDate
                     calendar.set(Calendar.HOUR_OF_DAY, 0)
                     calendar.set(Calendar.MINUTE, 0)
                     calendar.set(Calendar.SECOND, 0)
                     calendar.set(Calendar.MILLISECOND, 0)
 
-                    // Get the start of today
+// Get the start of today
                     val startOfToday = calendar.time
 
-                    // Get the end of today (23:59:59)
-                    calendar.add(Calendar.DAY_OF_MONTH, 1)
+// Set to the end of today (23:59:59)
+                    calendar.set(Calendar.HOUR_OF_DAY, 23)
+                    calendar.set(Calendar.MINUTE, 59)
+                    calendar.set(Calendar.SECOND, 59)
+                    calendar.set(Calendar.MILLISECOND, 999)
+
+// Get the end of today
                     val endOfToday = calendar.time
 
-                    // Disable or enable the task options based on the date comparison
+// Compare taskDate with startOfToday and endOfToday
                     if (taskDate.before(startOfToday) || taskDate.after(endOfToday)) {
-                        // Task date is not today or is in the past
+                        // Disable task options for dates outside of today
                         holder.taskOptions.isEnabled = false
                         holder.taskOptions.alpha = 0.5f // Make it look disabled
                     } else {
-                        // Task date is today, enable the task options
+                        // Enable task options for today
                         holder.taskOptions.isEnabled = true
-                        holder.taskOptions.alpha = 1.0f // Reset alpha to full
+                        holder.taskOptions.alpha = 1.0f
                         holder.taskOptions.setOnClickListener {
                             val context = holder.itemView.context
                             val intent = Intent(context, PomodoroActivity::class.java)
@@ -189,7 +198,7 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
                             intent.putExtra("TASK_DURATION", durationInMinutes.toString())
 
                             // Pass the task ID
-                            intent.putExtra("TASK_ID", task.id ?: "unknown_id") // Avoid null by providing a default
+                            intent.putExtra("TASK_ID", task.id ?: "unknown_id")
 
                             // Pass academicTask and priority
                             intent.putExtra("ACADEMIC_TASK", task.academicTask)
@@ -200,6 +209,8 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
                             context.startActivity(intent)
                         }
                     }
+
+
                     return // Exit since we handled this position
                 }
             }

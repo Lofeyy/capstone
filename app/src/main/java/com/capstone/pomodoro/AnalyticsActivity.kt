@@ -23,7 +23,7 @@ import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
 private lateinit var firebaseAuth: FirebaseAuth
-private lateinit var database: DatabaseReference
+lateinit var database: DatabaseReference
 private lateinit var recyclerViewTasks: RecyclerView
 private lateinit var taskAdapter: AnalyticsTaskAdapter
 private val tasks: MutableList<Task> = mutableListOf()

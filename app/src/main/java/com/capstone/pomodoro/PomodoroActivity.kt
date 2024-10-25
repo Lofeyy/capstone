@@ -1,6 +1,7 @@
 package com.capstone.pomodoro
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -32,13 +34,15 @@ class PomodoroActivity : AppCompatActivity() {
     private var timer: CountDownTimer? = null
     private var timeLeftInMillis: Long = 0
     private lateinit var database: DatabaseReference // Firebase database reference
-
+    private lateinit var firebaseAuth: FirebaseAuth
     // Session management variables
     private var sessionCount = 0
     private var totalSessions = 0
     private var totalTimeInMillis: Long = 0
-    private var pomodoroDuration: Long = 25 * 60 * 1000 // 25 minutes in milliseconds
-    private var shortBreakDuration: Long = 5 * 60 * 1000 // 5 minutes break in milliseconds
+    private var pomodoroDuration: Long = 1 * 60 * 1000 // Default: 25 minutes in milliseconds
+    private var shortBreakDuration: Long = 1 * 60 * 1000 // 5 minutes break in milliseconds
+    private var taskdurationinsecond: Long =  0
+
     private var remainingSessionTime: Long = 0
     private var isTimerRunning = false
     private var taskId = ""
@@ -54,8 +58,9 @@ class PomodoroActivity : AppCompatActivity() {
             insets
         }
 
-        // Initialize Firebase database reference
-        database = FirebaseDatabase.getInstance().reference.child("tasks")
+        // Initialize Firebase authentication and database reference
+        firebaseAuth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().reference
 
         // Initialize views
         focusTextView = findViewById(R.id.focusTextView)
@@ -65,15 +70,103 @@ class PomodoroActivity : AppCompatActivity() {
         startButton = findViewById(R.id.startButton)
         academicTask = findViewById(R.id.taskTitle)
         taskId = intent.getStringExtra("TASK_ID").toString()
-        Log.d("UpdateStatus", "Status updated successfully for task ID: $taskId")
 
-        // Get the task duration from the intent
-        val taskDuration = intent.getStringExtra("TASK_DURATION")?.toLongOrNull() ?: 25 // Default to 25 minutes
 
+
+        // Load pomodoro duration from Firebase
+        loadPomodoroDuration()
+
+
+        // Set the task title
+        val taskName = intent.getStringExtra("ACADEMIC_TASK") ?: "Pomodoro" // Default if null
+        val priority = intent.getStringExtra("PRIORITY") ?: "No Prio" // Default to Low if not provided
+
+
+        academicTask.text = taskName
+
+        // Set the priority indicator color based on the priority
+        val priorityIndicator = findViewById<View>(R.id.priorityIndicator)
+        when (priority) {
+            "Low" -> priorityIndicator.setBackgroundResource(R.drawable.circle_low_priority)
+            "Medium" -> priorityIndicator.setBackgroundResource(R.drawable.circle_medium_priority)
+            "High" -> priorityIndicator.setBackgroundResource(R.drawable.circle_high_priority)
+            else -> priorityIndicator.setBackgroundResource(R.drawable.circle_shape)
+        }
+        val settingsButton: ImageButton = findViewById(R.id.settings_button)
+        val backButton: ImageButton = findViewById(R.id.back_button)
+        backButton.setOnClickListener {
+            onBackPressed()
+        }
+        settingsButton.setOnClickListener {
+            // Open settings activity or dialog
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Set click listeners
+        startButton.setOnClickListener {
+            if (isTimerRunning) {
+                pauseTimer()
+            } else {
+                startTimer()
+            }
+        }
+    }
+
+    private fun loadPomodoroDuration() {
+        val currentUserId = firebaseAuth.currentUser?.uid ?: return
+
+        Log.d("MainActivity", "Current User ID: $currentUserId") // Log the current user ID
+
+        // Create a query to find the user settings based on user_id
+        val query = database.child("user_settings").orderByChild("user_id").equalTo(currentUserId)
+
+        query.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // Check if the user settings exist
+                if (snapshot.exists()) {
+                    for (userSnapshot in snapshot.children) {
+                        // Get the pomodoroDuration from the user's settings
+                        val duration = userSnapshot.child("pomodoroDuration").getValue(Long::class.java)
+                        Log.d("MainActivity", "Retrieved pomodoroDuration: $duration") // Log the retrieved duration
+                            val durationIntent = intent.getStringExtra("TASK_DURATION")
+                        Log.d("MainActivity", "Duration from intent: $durationIntent")
+                            if (durationIntent != null) {
+                                val intentDuration = durationIntent.toLongOrNull() ?: 25L // Default to 25 if conversion fails
+                                Log.d("MainActivity", "Duration from intent: $intentDuration")
+                                pomodoroTimerMinutes.text ="25"
+                                setupPomodoroSession(intentDuration) // Setup the session with intent duration
+                            } else {
+                                if (duration != null) {
+                                    pomodoroDuration = duration
+                                    val totalSeconds = duration / 1000
+                                    val minutes = (totalSeconds / 60).toInt()
+                                    pomodoroTimerMinutes.text = minutes.toString()
+                                    setupPomodoroSession(pomodoroDuration) // Setup the session with retrieved duration
+                                } // Set the retrieved duration
+
+                            }
+
+                    }
+                } else {
+                    Log.d("MainActivity", "No settings found for current user ID")
+                    setupPomodoroSession(25L) // Setup with default duration if no settings found
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("MainActivity", "Failed to load pomodoro duration", error.toException())
+            }
+        })
+    }
+
+
+    private fun setupPomodoroSession(taskDuration: Long) {
         // Determine the total time and split into sessions
-        if (taskDuration > 25) {
+      this.taskdurationinsecond = taskDuration * 60 * 1000
+        if (taskdurationinsecond > pomodoroDuration) {
             totalSessions = 2 // 2 sessions (25 + remaining time)
-            remainingSessionTime = (taskDuration - 25) * 60 * 1000 // Remaining time for second session in milliseconds
+            remainingSessionTime = (taskdurationinsecond - pomodoroDuration) // Remaining time for second session in milliseconds
         } else {
             totalSessions = 1 // Only 1 session
             remainingSessionTime = 0 // No remaining time
@@ -85,33 +178,7 @@ class PomodoroActivity : AppCompatActivity() {
 
         // Set initial state
         updateFocusState()
-
-        // Set click listeners
-        startButton.setOnClickListener {
-            if (isTimerRunning) {
-                pauseTimer()
-            } else {
-                startTimer()
-            }
-        }
-
-        val taskName = intent.getStringExtra("ACADEMIC_TASK") ?: "Pomodoro" // Default if null
-        val priority = intent.getStringExtra("PRIORITY") ?: "No Prio" // Default to Low if not provided
-
-
-        // Set the task title
-        academicTask.text = taskName
-
-        // Set the priority indicator color based on the priority
-        val priorityIndicator = findViewById<View>(R.id.priorityIndicator)
-        when (priority) {
-            "Low" -> priorityIndicator.setBackgroundResource(R.drawable.circle_low_priority)
-            "Medium" -> priorityIndicator.setBackgroundResource(R.drawable.circle_medium_priority)
-            "High" -> priorityIndicator.setBackgroundResource(R.drawable.circle_high_priority)
-            else -> priorityIndicator.setBackgroundResource(R.drawable.circle_shape) // Default resource if priority is unrecognized
-        }
     }
-
     private fun startTimer() {
         timer?.cancel()
 
@@ -141,8 +208,8 @@ class PomodoroActivity : AppCompatActivity() {
                     startNextSession()
                 } else {
                     val trimmedTaskId = taskId.trim()
-                    updateTaskStatus(trimmedTaskId, "done")
-                    stopService(intent) // Stop the service when the timer finishes
+                    showPauseDialog()
+
                 }
             }
         }.start()
@@ -184,24 +251,7 @@ class PomodoroActivity : AppCompatActivity() {
         focusTextView.text = "Break"
         iconImageView.setImageResource(R.drawable.coffee)
     }
-    private fun showPauseDialogYesOnly() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Pause")
-        builder.setMessage("Are you done?")
-        builder.setPositiveButton("Yes") { dialog, _ ->
-            val trimmedTaskId = taskId.trim()
-            Log.d("UpdateTask", "Attempting to update status for task ID: '$trimmedTaskId'")
-            updateTaskStatus(trimmedTaskId, "done")
 
-            dialog.dismiss()
-            finish()
-        }
-        builder.setNegativeButton("No") { dialog, _ ->
-            dialog.dismiss()
-            startButton.setImageResource(R.drawable.ic_arrow)
-        }
-        builder.create().show()
-    }
     private fun showPauseDialog() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Pause")
@@ -210,7 +260,7 @@ class PomodoroActivity : AppCompatActivity() {
             val trimmedTaskId = taskId.trim()
             Log.d("UpdateTask", "Attempting to update status for task ID: '$trimmedTaskId'")
             updateTaskStatus(trimmedTaskId, "done")
-
+            stopService(intent)
             dialog.dismiss()
             finish()
         }
@@ -221,36 +271,29 @@ class PomodoroActivity : AppCompatActivity() {
         builder.create().show()
     }
 
-    // Method to update the task status in Firebase
     private fun updateTaskStatus(taskId: String, status: String) {
         val trimmedTaskId = taskId.trim()
-        Log.d("UpdateStatus", "Attempting to update status for task ID: '$trimmedTaskId'")
-
+        // Update the reference to point to the tasks node, then the specific task ID
         val taskRef = database.child("tasks").child(trimmedTaskId)
 
-        // Check if the task exists
         taskRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    Log.d("UpdateStatus", "Task exists for ID: $trimmedTaskId")
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
                     taskRef.child("status").setValue(status)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                Log.d("UpdateStatus", "Status updated successfully for task ID: $trimmedTaskId")
+                                Log.d("UpdateStatus", "Task status updated successfully")
                             } else {
-                                Log.e("UpdateStatus", "Failed to update status for task ID: $trimmedTaskId", task.exception)
+                                Log.e("UpdateStatus", "Failed to update task status: ${task.exception?.message}")
                             }
                         }
-                        .addOnFailureListener { exception ->
-                            Log.e("UpdateStatus", "Error updating status for task ID: $trimmedTaskId: ${exception.message}")
-                        }
                 } else {
-                    Log.e("UpdateStatus", "Task does not exist for ID: $trimmedTaskId")
+                    Log.e("UpdateStatus", "Task not found for ID: $trimmedTaskId")
                 }
             }
 
-            override fun onCancelled(databaseError: DatabaseError) {
-                Log.e("UpdateStatus", "Database error: ${databaseError.message}")
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("UpdateStatus", "Failed to update status: ${error.message}")
             }
         })
     }

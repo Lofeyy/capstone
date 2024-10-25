@@ -24,7 +24,7 @@
         android:layout_marginTop="64dp"
         android:fontFamily="@font/bold2"
         android:gravity="center"
-        android:text="25"
+        android:text="00"
         android:textColor="@color/secondary_dark"
         android:textSize="200sp"
         app:layout_constraintEnd_toEndOf="parent"

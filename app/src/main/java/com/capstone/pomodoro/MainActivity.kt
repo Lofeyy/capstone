@@ -19,6 +19,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var firebaseDatabase: DatabaseReference
+    private lateinit var userSettings: DatabaseReference
+    private lateinit var pomodoroTimer: TextView // Declare pomodoroTimer TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,10 +33,13 @@ class MainActivity : AppCompatActivity() {
 
         val settingsButton: ImageButton = findViewById(R.id.settings_button)
         val titleText: TextView = findViewById(R.id.title_text)
+
         // Initialize Firebase
         firebaseAuth = FirebaseAuth.getInstance()
-        firebaseDatabase = FirebaseDatabase.getInstance().getReference("tasks")
+        firebaseDatabase = FirebaseDatabase.getInstance().reference
 
+        // Initialize the pomodoroTimer TextView
+        pomodoroTimer = findViewById(R.id.pomodoroTimer) // Make sure you have this in your layout XML
 
         // Settings button click listener
         settingsButton.setOnClickListener {
@@ -75,19 +80,25 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, TaskActivity::class.java)
             startActivity(intent)
         }
+
         binding.analyticsWidget1.setOnClickListener {
             val intent = Intent(this, AnalyticsActivity::class.java)
             startActivity(intent)
         }
+
         // Load task count for today
         loadTasksCountForToday()
+
+        // Load pomodoro duration for the current user
+        loadPomodoroDuration()
     }
 
     private fun loadTasksCountForToday() {
         val currentDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date())
         val currentUserId = firebaseAuth.currentUser?.uid ?: return
 
-        firebaseDatabase.orderByChild("userId").equalTo(currentUserId)
+
+        firebaseDatabase.child("tasks").orderByChild("userId").equalTo(currentUserId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     var taskCountToday = 0
@@ -105,4 +116,53 @@ class MainActivity : AppCompatActivity() {
                 }
             })
     }
+
+    private fun loadPomodoroDuration() {
+        val currentUserId = firebaseAuth.currentUser?.uid ?: return
+
+        Log.d("MainActivity", "Current User ID: $currentUserId") // Log the current user ID
+
+        // Create a query to find the user settings based on user_id
+        val query = firebaseDatabase.child("user_settings").orderByChild("user_id").equalTo(currentUserId)
+
+        query.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // Check if the user settings exist
+                if (snapshot.exists()) {
+                    for (userSnapshot in snapshot.children) {
+                        // Get the pomodoroDuration from the user's settings
+                        val duration = userSnapshot.child("pomodoroDuration").getValue(Long::class.java)
+                        Log.d("MainActivity", "Retrieved pomodoroDuration: $duration") // Log the retrieved duration
+
+                        if (duration != null) {
+                            // Convert milliseconds to minutes and seconds
+                            val totalSeconds = duration / 1000
+                            val minutes = (totalSeconds / 60).toInt()
+                            val seconds = (totalSeconds % 60).toInt()
+
+                            // Format to MM:SS
+                            val formattedDuration = String.format("%02d:%02d", minutes, seconds)
+                            pomodoroTimer.text = formattedDuration // Update the TextView with formatted duration
+                            Log.d("MainActivity", "Formatted Duration: $formattedDuration") // Log the formatted duration
+                        } else {
+                            pomodoroTimer.text = "25:00"
+                            Log.d("MainActivity", "Duration not set, using default: 25:00") // Log when default duration is used
+                        }
+                    }
+                } else {
+                    Log.d("MainActivity", "No settings found for current user ID")
+                    pomodoroTimer.text = "25:00" // Default duration if no settings found
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("MainActivity", "Failed to load pomodoro duration", error.toException())
+            }
+        })
+    }
+
+
+
+
+
 }
