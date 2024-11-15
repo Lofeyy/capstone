@@ -16,29 +16,34 @@ import java.util.Date
 import java.util.Locale
 
 
-data class TaskAnalytics(
-    @get:PropertyName("id") @set:PropertyName("id") var id: String = "",
-    @get:PropertyName("taskName") @set:PropertyName("taskName") var title: String = "",
-    @get:PropertyName("priority") @set:PropertyName("priority") var priority: String = "",
-    @get:PropertyName("submissionDate") @set:PropertyName("submissionDate") var date: String = "",
-    @get:PropertyName("userId") @set:PropertyName("userId") var userId: String = "",
-    @get:PropertyName("status") @set:PropertyName("status") var status: String = "",
-    @get:PropertyName("suggestedDuration") @set:PropertyName("suggestedDuration") var duration: String = "",
-    @get:PropertyName("suggestedTimeSlot") @set:PropertyName("suggestedTimeSlot") var timeSlot: String = "",
-    @get:PropertyName("academicTask") @set:PropertyName("academicTask") var academicTask: String = "" // Add this field if needed
-)
 
 
-fun groupTasksByDateAndSortAnalytics(tasks: List<Task>): Map<String, List<Task>> {
+
+fun groupTasksByDateAndSortanalytics(tasks: List<Task>): Map<String, List<Task>> {
     val inputDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-    val outputDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    val todayDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date())
 
-    return tasks.groupBy {
-        // Parse the date string from Firebase
-        val date = inputDateFormat.parse(it.date)
-        date?.let { outputDateFormat.format(it) } ?: "Unknown Date" // Handle parsing issues
+    // Log today's date for debugging
+    Log.d("Today's Date", todayDate)
+
+    // Group tasks by date
+    val groupedTasks = tasks.groupBy { it.date }
+
+    // Log the grouped tasks
+    Log.d("Grouped Tasks", groupedTasks.toString())
+
+    // Create a new map that includes today's tasks at the top
+    val sortedMap = linkedMapOf<String, List<Task>>()
+
+    // First, add today's tasks to the sortedMap if any
+    if (groupedTasks.containsKey(todayDate)) {
+        sortedMap[todayDate] = groupedTasks[todayDate]!!
     }
-        .filterKeys { key ->
+
+    // Now sort remaining dates, excluding today
+    groupedTasks.keys
+        .filter { it != todayDate } // Exclude today’s date
+        .filter { key ->
             // Filter out invalid date keys
             try {
                 inputDateFormat.parse(key) != null
@@ -46,10 +51,17 @@ fun groupTasksByDateAndSortAnalytics(tasks: List<Task>): Map<String, List<Task>>
                 false
             }
         }
-        // Sort the map by date in descending order
-        .toSortedMap(compareByDescending { inputDateFormat.parse(it) })
-        // Sort tasks by priority within each group
-        .mapValues { (_, tasks) -> sortTasksByPriority(tasks) }
+        // Sort remaining dates in descending order
+        .sortedByDescending { inputDateFormat.parse(it) }
+        .forEach { date ->
+            sortedMap[date] = groupedTasks[date] ?: emptyList()
+        }
+
+    // Log the sorted map before returning
+    Log.d("Sorted Map", sortedMap.toString())
+
+    // Sort tasks by priority within each group
+    return sortedMap.mapValues { (_, tasks) -> sortTasksByPriority(tasks) }
 }
 //
 
@@ -121,8 +133,16 @@ class AnalyticsTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
 
                     // Set dynamic task title
                     holder.taskTitle.text = task.title // Dynamically set the task title
+                    holder.sessionsCount.text = task.session // Dynamically set the task title
+                    holder.taskDuration.text = task.duration
 
-                    // Note: Removed taskDuration, taskTimeSlot, priorityIndicator, taskOptions handling
+                    // Set a click listener on the task item
+                    holder.itemView.setOnClickListener {
+                        val intent = Intent(it.context, ViewTaskActivity::class.java)
+                        intent.putExtra("TASK_ID", task.id ?: "unknown_id")
+                        Log.d("TaskAnalytics", "Task clicked, ID: ${task.id}") // Log the task ID for debugging
+                        it.context.startActivity(intent) // Start the new activity
+                    }
                 }
                 return // Exit since we handled this position
             }
@@ -144,5 +164,27 @@ class AnalyticsTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
 
     class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val taskTitle: TextView = itemView.findViewById(R.id.taskTitle) // Only retain taskTitle
+        val sessionsCount: TextView = itemView.findViewById(R.id.sessionsCount)
+        val taskDuration: TextView = itemView.findViewById(R.id.duration)
     }
+
+    fun getTaskAtPosition(position: Int): Task? {
+        var count = 0
+        for (date in dateList) {
+            count++ // Count the header
+            val tasksForDate = groupedTasks[date] ?: emptyList()
+            count += tasksForDate.size // Count tasks for the current date
+
+            if (position < count) {
+                val taskIndex = position - (count - tasksForDate.size) // Calculate task index
+                return if (taskIndex >= 0 && taskIndex < tasksForDate.size) {
+                    tasksForDate[taskIndex]
+                } else {
+                    null
+                }
+            }
+        }
+        return null
+    }
+
 }

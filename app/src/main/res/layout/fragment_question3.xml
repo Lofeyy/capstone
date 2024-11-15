@@ -40,21 +40,11 @@
         android:layout_marginTop="12dp"
         android:text="Researching"
         android:textSize="18sp"
-        app:layout_constraintTop_toBottomOf="@+id/buttonStudying"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Button for Studying -->
-    <Button
-        android:id="@+id/buttonStudying"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="76dp"
-        android:text="Studying"
-        android:textSize="18sp"
         app:layout_constraintTop_toBottomOf="@+id/textView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+
 
     <!-- Button for Reviewing -->
     <Button

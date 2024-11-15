@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.PropertyName
@@ -15,15 +16,16 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
+import java.text.ParseException
 
 data class Task(
     @get:PropertyName("id") @set:PropertyName("id") var id: String = "",
     @get:PropertyName("taskName") @set:PropertyName("taskName") var title: String = "",
+    @get:PropertyName("sessions") @set:PropertyName("sessions") var session: String = "0/0",
     @get:PropertyName("priority") @set:PropertyName("priority") var priority: String = "",
     @get:PropertyName("submissionDate") @set:PropertyName("submissionDate") var date: String = "",
     @get:PropertyName("userId") @set:PropertyName("userId") var userId: String = "",
-    @get:PropertyName("status") @set:PropertyName("status") var status: String = "",
+    @get:PropertyName("status") @set:PropertyName("status") var status: String = "N/A",
     @get:PropertyName("suggestedDuration") @set:PropertyName("suggestedDuration") var duration: String = "",
     @get:PropertyName("suggestedTimeSlot") @set:PropertyName("suggestedTimeSlot") var timeSlot: String = "",
     @get:PropertyName("academicTask") @set:PropertyName("academicTask") var academicTask: String = "" // Add this field if needed
@@ -31,39 +33,36 @@ data class Task(
 
 
 fun groupTasksByDateAndSort(tasks: List<Task>): Map<String, List<Task>> {
-    val inputDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-    val todayDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date())
+    // Update date format to MM/dd/yy
+    val inputDateFormat = SimpleDateFormat("MM/dd/yy", Locale.getDefault())
+    val todayDate = SimpleDateFormat("MM/dd/yy", Locale.getDefault()).format(Date())
 
     // Log today's date for debugging
     Log.d("Today's Date", todayDate)
 
+    // Filter out tasks that have already passed (i.e., submission date is before today)
+    val upcomingTasks = tasks.filter { task ->
+        try {
+            val taskDate = inputDateFormat.parse(task.date) ?: Date()
+            val currentDate = Date()
+            taskDate.after(currentDate) || task.date == todayDate
+        } catch (e: ParseException) {
+            false
+        }
+    }
+
     // Group tasks by date
-    val groupedTasks = tasks.groupBy { it.date }
+    val groupedTasks = upcomingTasks.groupBy { it.date }
 
     // Log the grouped tasks
     Log.d("Grouped Tasks", groupedTasks.toString())
 
-    // Create a new map that includes today's tasks at the top
+    // Create a new map and sort the dates in descending order (latest date first)
     val sortedMap = linkedMapOf<String, List<Task>>()
 
-    // First, add today's tasks to the sortedMap if any
-    if (groupedTasks.containsKey(todayDate)) {
-        sortedMap[todayDate] = groupedTasks[todayDate]!!
-    }
-
-    // Now sort remaining dates, excluding today
+    // Sort the grouped tasks by date in descending order
     groupedTasks.keys
-        .filter { it != todayDate } // Exclude today’s date
-        .filter { key ->
-            // Filter out invalid date keys
-            try {
-                inputDateFormat.parse(key) != null
-            } catch (e: Exception) {
-                false
-            }
-        }
-        // Sort remaining dates in descending order
-        .sortedByDescending { inputDateFormat.parse(it) }
+        .sortedByDescending { inputDateFormat.parse(it) }  // Change to descending order
         .forEach { date ->
             sortedMap[date] = groupedTasks[date] ?: emptyList()
         }
@@ -74,7 +73,6 @@ fun groupTasksByDateAndSort(tasks: List<Task>): Map<String, List<Task>> {
     // Sort tasks by priority within each group
     return sortedMap.mapValues { (_, tasks) -> sortTasksByPriority(tasks) }
 }
-
 
 
 // Function to sort tasks by priority
@@ -91,7 +89,11 @@ private fun sortTasksByPriority(tasks: List<Task>): List<Task> {
 
 class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val dateList = groupedTasks.keys.toList().sortedDescending() // Sort the dates in descending order
+    // Sort the dates in descending order here
+    private val dateList = groupedTasks.keys.toList().sortedBy { date ->
+        SimpleDateFormat("MM/dd/yy", Locale.getDefault()).parse(date) ?: Date()
+    }
+
 
     companion object {
         private const val VIEW_TYPE_HEADER = 0
@@ -99,7 +101,6 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
     }
 
     override fun getItemViewType(position: Int): Int {
-        // If the position corresponds to a header (which is at every first position of tasks for a date)
         var count = 0
         for (date in dateList) {
             if (count == position) {
@@ -145,7 +146,17 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
                     holder as TaskViewHolder // Cast holder to TaskViewHolder
                     holder.taskTitle.text = task.title
                     holder.taskDuration.text = task.duration
-                    holder.taskTimeSlot.text = task.timeSlot
+
+                    // Convert timeSlot to 12-hour format with AM/PM
+                    val timeFormat24 = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val timeFormat12 = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                    val formattedTimeSlot = try {
+                        val date = timeFormat24.parse(task.timeSlot)
+                        timeFormat12.format(date)
+                    } catch (e: ParseException) {
+                        task.timeSlot // Fallback to original if parsing fails
+                    }
+                    holder.taskTimeSlot.text = formattedTimeSlot
 
                     // Set the priority indicator color
                     when (task.priority) {
@@ -154,65 +165,43 @@ class TaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerV
                         "High" -> holder.priorityIndicator.setBackgroundResource(R.drawable.circle_high_priority)
                     }
 
-                    // Parse the task date (MM/dd/yyyy format)
-                    val taskDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(task.date) ?: Date()
-
-// Get the current date
-                    val currentDate = Date()
-                    val calendar = Calendar.getInstance()
-
-// Set to the start of today (00:00:00)
-                    calendar.time = currentDate
-                    calendar.set(Calendar.HOUR_OF_DAY, 0)
-                    calendar.set(Calendar.MINUTE, 0)
-                    calendar.set(Calendar.SECOND, 0)
-                    calendar.set(Calendar.MILLISECOND, 0)
-
-// Get the start of today
-                    val startOfToday = calendar.time
-
-// Set to the end of today (23:59:59)
-                    calendar.set(Calendar.HOUR_OF_DAY, 23)
-                    calendar.set(Calendar.MINUTE, 59)
-                    calendar.set(Calendar.SECOND, 59)
-                    calendar.set(Calendar.MILLISECOND, 999)
-
-// Get the end of today
-                    val endOfToday = calendar.time
-
-// Compare taskDate with startOfToday and endOfToday
-                    if (taskDate.before(startOfToday) || taskDate.after(endOfToday)) {
-                        // Disable task options for dates outside of today
-                        holder.taskOptions.isEnabled = false
-                        holder.taskOptions.alpha = 0.5f // Make it look disabled
-                    } else {
-                        // Enable task options for today
+                    // Check if submission date is in the future and disable the options button if true
+                    val inputDateFormat = SimpleDateFormat("MM/dd/yy", Locale.getDefault())
+                    try {
+                        val taskDate = inputDateFormat.parse(task.date) ?: Date()
+                        val currentDate = Date()
+//                        if (taskDate.after(currentDate)) {
+//                            // Disable the task options button if the date is in the future
+//                            holder.taskOptions.isEnabled = false
+//                            holder.taskOptions.alpha = 0.5f // Optional: make it look disabled
+//                        } else {
+//                            // Enable the task options button if the date is not in the future
+//                            holder.taskOptions.isEnabled = true
+//                            holder.taskOptions.alpha = 1.0f
+//                        }
+                    } catch (e: ParseException) {
+                        e.printStackTrace()
+                        // Default to enabling the button if there's an issue parsing the date
                         holder.taskOptions.isEnabled = true
                         holder.taskOptions.alpha = 1.0f
-                        holder.taskOptions.setOnClickListener {
-                            val context = holder.itemView.context
-                            val intent = Intent(context, PomodoroActivity::class.java)
-
-                            // Extract the numeric part from the task duration
-                            val durationInMinutes = task.duration.replace("\\D".toRegex(), "").toLongOrNull() ?: 25
-                            intent.putExtra("TASK_DURATION", durationInMinutes.toString())
-
-                            // Pass the task ID
-                            intent.putExtra("TASK_ID", task.id ?: "unknown_id")
-
-                            // Pass academicTask and priority
-                            intent.putExtra("ACADEMIC_TASK", task.academicTask)
-                            intent.putExtra("PRIORITY", task.priority)
-                            Log.d("PomodoroActivity", "Task ID: ${task.id}")
-                            Log.d("PomodoroActivity", "Academic Task: ${task.academicTask}")
-                            Log.d("PomodoroActivity", "Priority: ${task.priority}")
-                            context.startActivity(intent)
-                        }
                     }
 
-
-                    return // Exit since we handled this position
+                    // Set the task options and handle today's tasks as before
+                    holder.taskOptions.setOnClickListener {
+                        val context = holder.itemView.context
+                        val intent = Intent(context, PomodoroTest::class.java)
+                        val durationInMinutes = task.duration.replace("\\D".toRegex(), "").toLongOrNull() ?: 25
+                        intent.putExtra("TASK_DURATION", durationInMinutes.toString())
+                        intent.putExtra("TASK_ID", task.id ?: "unknown_id")
+                        intent.putExtra("ACADEMIC_TASK", task.academicTask)
+                        intent.putExtra("PRIORITY", task.priority)
+                        Log.d("PomodoroActivity", "Task ID: ${task.id}")
+                        Log.d("PomodoroActivity", "Academic Task: ${task.academicTask}")
+                        Log.d("PomodoroActivity", "Priority: ${task.priority}")
+                        context.startActivity(intent)
+                    }
                 }
+                return // Exit since we handled this position
             }
         }
     }

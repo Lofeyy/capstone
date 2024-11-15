@@ -17,19 +17,36 @@
         android:theme="@style/Theme.Pomodoro"
         tools:targetApi="31">
         <activity
-            android:name=".SettingsActivity"
+            android:name=".ViewTaskActivity"
             android:exported="false"
             android:theme="@style/Theme.Pomodoro.NoActionBar"/>
         <activity
+            android:name=".PomodoroTest"
+            android:exported="false"
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
+        <activity
+            android:name=".CreateTaskTest"
+            android:exported="false"
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
+        <activity
+            android:name=".CreateTaskActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
+        <activity
             android:name=".AnalyticsActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
         <activity
             android:name=".QuestionActivity"
             android:exported="false" /> <!-- Service declaration -->
-        <service
-            android:name=".PomodoroService"
-            android:exported="false"
-            android:foregroundServiceType="shortService" /> <!-- Activities -->
+        <!-- <service -->
+        <!-- android:name=".PomodoroService" -->
+        <!-- android:exported="false" -->
+        <!-- android:foregroundServiceType="shortService" /> -->
         <activity
             android:name=".CalendarActivity"
             android:exported="false"
@@ -41,16 +58,13 @@
         <activity
             android:name=".PomodoroActivity"
             android:exported="false"
-            android:theme="@style/Theme.Pomodoro.NoActionBar"
-            />
+            android:theme="@style/Theme.Pomodoro.NoActionBar" />
         <activity
             android:name=".ForgotPasswordActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Pomodoro.NoActionBar"/>
+            android:exported="false" />
         <activity
             android:name=".RegisterActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Pomodoro.NoActionBar"/>
+            android:exported="false" />
         <activity
             android:name=".LoginActivity"
             android:exported="true"

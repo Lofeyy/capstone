@@ -257,7 +257,7 @@ class CreateTaskDialogFragment : DialogFragment() {
 
                 // Map to hold the dynamic durations based on priority
                 val durationMapping = mapOf(
-                    "prio1" to (50..60),
+                    "prio1" to (50..63),
                     "prio2" to (45..50),
                     "prio3" to (35..40),
                     "prio4" to (30..35),

@@ -1,5 +1,6 @@
 package com.capstone.pomodoro
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import android.widget.CalendarView
+import android.widget.ImageButton
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -16,7 +18,7 @@ class CalendarActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var database: DatabaseReference
     private lateinit var recyclerViewTasks: RecyclerView
-    private lateinit var taskAdapter: TaskAdapter
+    private lateinit var taskAdapter: CalendartTaskAdapter
     private lateinit var calendarView: CalendarView
 
     private val tasks: MutableList<Task> = mutableListOf()
@@ -34,14 +36,23 @@ class CalendarActivity : AppCompatActivity() {
         recyclerViewTasks.layoutManager = LinearLayoutManager(this)
 
         // Initialize the adapter and attach it to the RecyclerView (even if empty)
-        taskAdapter = TaskAdapter(emptyMap()) // Initially pass an empty map
+        taskAdapter = CalendartTaskAdapter(emptyMap()) // Initially pass an empty map
         recyclerViewTasks.adapter = taskAdapter
 
         calendarView = findViewById(R.id.calendarView)
 
         // Fetch and display tasks
         fetchTasks()
-
+        val settingsButton: ImageButton = findViewById(R.id.settings_button)
+        val backButton: ImageButton = findViewById(R.id.back_button)
+        backButton.setOnClickListener {
+            onBackPressed()
+        }
+        settingsButton.setOnClickListener {
+            // Open settings activity or dialog
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
         // Handle date selection on the CalendarView
         calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
             // Format the selected date
@@ -64,7 +75,7 @@ class CalendarActivity : AppCompatActivity() {
                     }
 
                     // Group and sort tasks by date and priority
-                    val groupedTasks = groupTasksByDateAndSortAnalytics(tasks)
+                    val groupedTasks = groupTasksByDateAndSortanalytics(tasks)
 
                     // Initially display tasks for today's date
                     val todayDate = getTodayDate()
@@ -82,12 +93,12 @@ class CalendarActivity : AppCompatActivity() {
         val tasksForSelectedDate = groupedTasks[date] ?: emptyList()
 
         // Pass tasks for the selected date to the adapter and notify it of data change
-        taskAdapter = TaskAdapter(mapOf(date to tasksForSelectedDate))
+        taskAdapter = CalendartTaskAdapter(mapOf(date to tasksForSelectedDate))
         recyclerViewTasks.adapter = taskAdapter
         taskAdapter.notifyDataSetChanged()
     }
 
-    private fun groupTasksByDateAndSort(tasks: List<Task>): Map<String, List<Task>> {
+    private fun groupTasksByDateAndSort(tasks: MutableList<Task>): Map<String, List<Task>> {
         return tasks
             .groupBy { it.date }
             .mapValues { entry ->

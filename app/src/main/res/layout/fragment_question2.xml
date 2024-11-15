@@ -1,60 +1,89 @@
-<LinearLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="@color/primary_dark"
     android:padding="16dp">
 
+    <!-- Other Content Here -->
     <TextView
+        android:id="@+id/titleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="What time do you usually do academic tasks on weekends?"
-        android:textSize="18sp" />
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:text="What time do you usually do academic tasks on weekends?" />
 
     <TextView
         android:id="@+id/weekendStartText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/input_field_background"
+        android:textColor="@android:color/white"
         android:hint="Select start time"
+        android:padding="16dp"
         android:textSize="16sp"
-        android:background="?attr/selectableItemBackground"
-        android:padding="16dp" />
+        android:layout_below="@+id/titleText"
+        android:layout_marginTop="16dp" />
 
     <Button
         android:id="@+id/weekendStartButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Select Start Time" />
+        android:backgroundTint="@color/button_color"
+        android:text="Select Start Time"
+        android:layout_below="@id/weekendStartText"
+        android:layout_marginTop="8dp" />
 
     <TextView
         android:id="@+id/weekendEndText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Select end time"
+        android:background="@drawable/input_field_background"
+        android:textColor="@android:color/white"
         android:textSize="16sp"
-        android:background="?attr/selectableItemBackground"
         android:padding="16dp"
+        android:layout_below="@id/weekendStartButton"
         android:layout_marginTop="16dp" />
 
     <Button
         android:id="@+id/weekendEndButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Select End Time" />
-
-    <Button
-        android:id="@+id/nextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Next"
-        android:layout_marginTop="16dp" />
-
-    <!-- New Back Button below Next Button -->
-    <Button
-        android:id="@+id/backButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Back"
+        android:backgroundTint="@color/button_color"
+        android:text="Select End Time"
+        android:layout_below="@id/weekendEndText"
         android:layout_marginTop="8dp" />
 
-</LinearLayout>
+    <!-- Bottom Buttons Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="16dp">
+
+        <!-- Back Button on Bottom Left -->
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/button_color"
+            android:layout_marginRight="40dp"
+            android:layout_weight="1"
+            android:text="Back" />
+
+        <!-- Next Button on Bottom Right -->
+        <Button
+            android:id="@+id/nextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/button_color"
+            android:layout_weight="1"
+            android:text="Next" />
+    </LinearLayout>
+
+</RelativeLayout>

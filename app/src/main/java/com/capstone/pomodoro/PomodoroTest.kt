@@ -26,7 +26,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
-class PomodoroActivity : AppCompatActivity() {
+class PomodoroTest : AppCompatActivity() {
 
     private lateinit var focusTextView: TextView
     private lateinit var sessionTextView: TextView
@@ -45,7 +45,7 @@ class PomodoroActivity : AppCompatActivity() {
     private var totalSessions = 0
     private var totalTimeInMillis: Long = 0
     private var pomodoroDuration: Long = 25 * 60 * 1000 // Default: 25 minutes in milliseconds
-    private var shortBreakDuration: Long = 25 * 60 * 1000 // 5 minutes break in milliseconds
+    private var shortBreakDuration: Long = 5 * 60 * 1000 // 5 minutes break in milliseconds
     private var taskdurationinsecond: Long =  0
     private var isBreakSession = true
     private var remainingSessionTime: Long = 0
@@ -191,38 +191,28 @@ class PomodoroActivity : AppCompatActivity() {
     private fun startTimer() {
         timer?.cancel()
 
-        // Start the service in the foreground
-//        val intent = Intent(this, PomodoroService::class.java).apply {
-//            putExtra("TIME_LEFT", timeLeftInMillis) // Pass the remaining time
-//        }
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            startForegroundService(intent)
-//        } else {
-//            startService(intent)
-//        }
-
         isTimerRunning = true
 
-        val breakThresholdMillis = 1000
+        val breakThresholdMillis = 5000 // 5 seconds threshold before the timer ends
 
         timer = object : CountDownTimer(timeLeftInMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 timeLeftInMillis = millisUntilFinished
                 updateTimer(timeLeftInMillis)
 
-                // Check if we are within the threshold for ending the session
-                if (timeLeftInMillis <= breakThresholdMillis ) {
-                    breakSound() // Play break sound
+                // Trigger the break sound every time we're at or under the 5-second mark
+                if (timeLeftInMillis <= breakThresholdMillis) {
+                    breakSound() // Play break sound when 5 seconds or less are remaining
                 }
             }
+
             override fun onFinish() {
                 updateTimer(timeLeftInMillis)
                 Log.d("onFinish", "Session Count: $sessionCount")
                 Log.d("onFinish", "timeLeftInMillis: $timeLeftInMillis")
+
                 // Check if we need to play sound and start break session
                 if (isBreakSession) {
-
                     startBreakSession()
                 } else {
                     showPauseDialog()
@@ -232,19 +222,16 @@ class PomodoroActivity : AppCompatActivity() {
 
         startButton.setImageResource(R.drawable.ic_pause)
     }
+
     private fun breakSound() {
         // Create the MediaPlayer instance
         val mediaPlayer = MediaPlayer.create(this, R.raw.breaknotif)
 
         mediaPlayer.start() // Start playing the sound
 
-        // Create a handler to stop the sound after 7 seconds (if needed)
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.stop() // Stop the sound if it's still playing
-            }
-            mediaPlayer.release() // Release resources
-        }, 3000) // Duration in milliseconds (7 seconds)
+        // Immediately stop the sound after it starts playing (no delay)
+        mediaPlayer.stop() // Stop the sound if it's still playing
+        mediaPlayer.release() // Release resources
     }
 
 
@@ -274,15 +261,15 @@ class PomodoroActivity : AppCompatActivity() {
         startTimer()
     }
 
-private fun startBreakSession(){
-    timeLeftInMillis = shortBreakDuration
-    updateBreakState()
-    isBreakSession = false
+    private fun startBreakSession(){
+        timeLeftInMillis = shortBreakDuration
+        updateBreakState()
+        isBreakSession = false
 
-    updateTimer(timeLeftInMillis)
-    startTimer()
+        updateTimer(timeLeftInMillis)
+        startTimer()
 
-}
+    }
     private fun pauseTimer() {
         timer?.cancel()
         isTimerRunning = false
@@ -323,7 +310,7 @@ private fun startBreakSession(){
             dialog.dismiss()
             startButton.setImageResource(R.drawable.ic_arrow)
 
-                startNextSession()
+            startNextSession()
         }
         builder.create().show()
     }
@@ -364,7 +351,7 @@ private fun startBreakSession(){
         taskRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    taskRef.child("sessions").setValue(sessionData)
+                    taskRef.child("session").setValue(sessionData)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
                                 Log.d("AddSession", "Session updated successfully")

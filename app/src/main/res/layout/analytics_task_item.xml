@@ -19,7 +19,7 @@
         <!-- Task title -->
         <TextView
             android:id="@+id/taskTitle"
-            android:layout_width="117dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="4dp"
@@ -27,7 +27,18 @@
             android:text="Task Title"
             android:textColor="@android:color/white"
             android:textSize="16sp" />
-
+        <!-- Task suggested time slot -->
+        <TextView
+            android:id="@+id/duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:text="40mins"
+            android:textColor="#FFFFFF"
+            android:layout_marginStart="2dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:layout_gravity="center" />
         <!-- Task suggested time slot -->
         <TextView
             android:id="@+id/taskTimeSlot"
@@ -43,7 +54,7 @@
 
         <!-- Task duration -->
         <TextView
-            android:id="@+id/taskDuration"
+            android:id="@+id/sessionsCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="14sp"

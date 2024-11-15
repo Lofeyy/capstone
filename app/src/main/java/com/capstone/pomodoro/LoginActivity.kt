@@ -24,7 +24,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var emailEditText: TextInputEditText
     private lateinit var passwordEditText: TextInputEditText
     private lateinit var loginButton: MaterialButton
-    private lateinit var googleSignInButton: com.google.android.gms.common.SignInButton
+
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var database: FirebaseDatabase
     private lateinit var usersRef: DatabaseReference
@@ -42,7 +42,7 @@ class LoginActivity : AppCompatActivity() {
         emailEditText = findViewById(R.id.emailEditText)
         passwordEditText = findViewById(R.id.passwordEditText)
         loginButton = findViewById(R.id.loginButton)
-        googleSignInButton = findViewById(R.id.googleSignInButton)
+
 
         firebaseAuth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance()
@@ -54,9 +54,6 @@ class LoginActivity : AppCompatActivity() {
             handleLogin(email, password)
         }
 
-        googleSignInButton.setOnClickListener {
-            signInWithGoogle()
-        }
 
         findViewById<TextView>(R.id.textView6).setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
@@ -66,12 +63,7 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, ForgotPasswordActivity::class.java))
         }
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
 
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
     }
 
     override fun onStart() {
@@ -83,10 +75,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun signInWithGoogle() {
-        val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -175,7 +164,7 @@ class LoginActivity : AppCompatActivity() {
                         if (scheduleSnapshot.exists()) {
                             // Check if all required fields in user_schedule are filled
                             val hasCompleteSchedule = listOf(
-                                "prio1", "prio2", "prio3", "prio4", "prio5", "prio6",
+                                "prio1", "prio2", "prio3", "prio4", "prio5",
                                 "week_days_start", "week_days_end", "weekend_start", "weekend_end"
                             ).all { key ->
                                 val value = scheduleSnapshot.child(key).getValue(String::class.java)

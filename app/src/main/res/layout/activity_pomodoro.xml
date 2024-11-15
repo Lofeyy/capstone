@@ -21,7 +21,7 @@
         android:id="@+id/pomodoroTimerMinutes"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="64dp"
+        android:layout_marginTop="112dp"
         android:fontFamily="@font/bold2"
         android:gravity="center"
         android:text="00"
@@ -32,16 +32,34 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/pomodoroTimerSeconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/bold2"
+        android:gravity="center"
+        android:text="00"
+        android:textColor="@color/secondary_dark"
+        android:textSize="200sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/include"
+        app:layout_constraintVertical_bias="0.593" />
+
     <ImageButton
         android:id="@+id/startButton"
         android:layout_width="130dp"
         android:layout_height="74dp"
-        android:layout_marginTop="420dp"
+        android:layout_marginTop="476dp"
         android:background="@drawable/btn_purple_background"
         android:contentDescription="@string/start_timer"
         android:scaleType="fitCenter"
         android:src="@drawable/ic_arrow"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/include"
         app:tint="@color/primary_dark" />
@@ -50,11 +68,12 @@
         android:id="@+id/resetButton"
         android:layout_width="172dp"
         android:layout_height="48dp"
+        android:layout_marginTop="28dp"
         android:background="@drawable/btn_purple_background"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.52"
+        app:layout_constraintHorizontal_bias="0.489"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/include"
         tools:ignore="NotSibling">
@@ -79,23 +98,6 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/pomodoroTimerSeconds"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/bold2"
-        android:gravity="center"
-        android:text="00"
-        android:textColor="@color/secondary_dark"
-        android:textSize="200sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/include"
-        app:layout_constraintVertical_bias="0.498" />
-
     <LinearLayout
         android:layout_width="304dp"
         android:layout_height="78dp"
@@ -104,17 +106,18 @@
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.495"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/startButton"
-        app:layout_constraintVertical_bias="0.305">
+        app:layout_constraintVertical_bias="0.502">
 
         <!-- Circle indicator -->
         <View
             android:id="@+id/priorityIndicator"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="4dp"
             android:background="@drawable/circle_shape" />
@@ -145,14 +148,14 @@
 
         <!-- Task duration -->
         <TextView
-            android:id="@+id/session"
+            android:id="@+id/sessionText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
             android:layout_marginEnd="26dp"
-            android:text="1/2"
+            android:layout_marginBottom="4dp"
+            android:text="0/0"
             android:textColor="#FFFFFF"
             android:textSize="14sp" />
 

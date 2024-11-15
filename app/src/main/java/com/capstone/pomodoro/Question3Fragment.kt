@@ -15,10 +15,11 @@ class Question3Fragment : Fragment() {
 
     private lateinit var database: DatabaseReference
     private lateinit var userId: String
-    private val selectedTasks = mutableListOf<String?>() // To keep track of selected tasks
+    private val selectedTasks = mutableListOf<String?>()
 
     // List of all task options
     private val allTasks = listOf("Studying", "Researching", "Reviewing", "Reading", "Writing", "Assignments")
+    private val taskButtons = mutableMapOf<String, Button>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,14 +49,18 @@ class Question3Fragment : Fragment() {
     }
 
     private fun setupButtonListeners(view: View) {
-        val buttonStudying = view.findViewById<Button>(R.id.buttonStudying)
         val buttonResearching = view.findViewById<Button>(R.id.buttonResearching)
         val buttonReviewing = view.findViewById<Button>(R.id.buttonReviewing)
         val buttonReading = view.findViewById<Button>(R.id.buttonReading)
         val buttonWriting = view.findViewById<Button>(R.id.buttonWriting)
         val buttonAssignments = view.findViewById<Button>(R.id.buttonAssignments)
 
-        buttonStudying.setOnClickListener { toggleTaskSelection("Studying", buttonStudying) }
+        taskButtons["Researching"] = buttonResearching
+        taskButtons["Reviewing"] = buttonReviewing
+        taskButtons["Reading"] = buttonReading
+        taskButtons["Writing"] = buttonWriting
+        taskButtons["Assignments"] = buttonAssignments
+
         buttonResearching.setOnClickListener { toggleTaskSelection("Researching", buttonResearching) }
         buttonReviewing.setOnClickListener { toggleTaskSelection("Reviewing", buttonReviewing) }
         buttonReading.setOnClickListener { toggleTaskSelection("Reading", buttonReading) }
@@ -64,22 +69,25 @@ class Question3Fragment : Fragment() {
     }
 
     private fun toggleTaskSelection(task: String, button: Button) {
-        // If the task is already selected, deselect it
         if (selectedTasks.contains(task)) {
             selectedTasks.remove(task)
             button.isSelected = false
             button.setBackgroundColor(resources.getColor(android.R.color.transparent)) // Deselect color
+            button.text = task // Reset to original text
         } else {
-            // If not selected, select it and mark the button
             selectedTasks.add(task)
             button.isSelected = true
             button.setBackgroundColor(resources.getColor(android.R.color.holo_blue_light)) // Selected color
+
+            // Update the button text with the number in front of the task
+            val taskIndex = selectedTasks.indexOf(task) + 1 // +1 to start from 1
+            button.text = "$taskIndex. $task"
         }
 
         // Save all selected tasks to Firebase
         saveToFirebase()
 
-        // Check if all tasks have been selected to enable the Next button
+        // Check if the required number of tasks have been selected to enable the Next button
         checkIfAllTasksSelected()
     }
 
@@ -89,7 +97,7 @@ class Question3Fragment : Fragment() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     selectedTasks.clear()
-                    for (i in 1..6) {
+                    for (i in 1..5) {
                         val task = snapshot.child("prio$i").getValue(String::class.java)
                         if (task != null) {
                             selectedTasks.add(task)
@@ -112,13 +120,13 @@ class Question3Fragment : Fragment() {
         val userScheduleRef = database.child("user_schedule").child(userId)
 
         // Clear previous priorities
-        for (i in 1..6) {
+        for (i in 1..5) {
             userScheduleRef.child("prio$i").removeValue()
         }
 
         // Save selected tasks to Firebase based on their priorities
         selectedTasks.forEachIndexed { index, task ->
-            if (index < 6) { // Only save the first 6 tasks
+            if (index < 5) { // Only save the first 5 tasks
                 userScheduleRef.child("prio${index + 1}").setValue(task)
             }
         }
@@ -126,7 +134,6 @@ class Question3Fragment : Fragment() {
 
     private fun updateButtonsUI(view: View) {
         val buttons = mapOf(
-            "Studying" to view.findViewById<Button>(R.id.buttonStudying),
             "Researching" to view.findViewById<Button>(R.id.buttonResearching),
             "Reviewing" to view.findViewById<Button>(R.id.buttonReviewing),
             "Reading" to view.findViewById<Button>(R.id.buttonReading),
@@ -147,7 +154,8 @@ class Question3Fragment : Fragment() {
 
     private fun checkIfAllTasksSelected() {
         val nextButton = view?.findViewById<Button>(R.id.nextButton)
-        if (selectedTasks.size == allTasks.size) {
+        // Change this condition to check if at least 5 tasks are selected
+        if (selectedTasks.size >= 5) {
             nextButton?.visibility = View.VISIBLE // Show the Next button
         } else {
             nextButton?.visibility = View.GONE // Hide the Next button

@@ -70,12 +70,15 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Set onClickListener for taskWidget
+        // COMMENT OUT FOR TESTING
+//        binding.taskWidget.setOnClickListener {
+//            val intent = Intent(this, CreateTaskActivity::class.java)
+//            startActivity(intent)
+//        }
         binding.taskWidget.setOnClickListener {
-            val dialog = CreateTaskDialogFragment()
-            dialog.show(supportFragmentManager, "CreateTaskDialog")
+            val intent = Intent(this, CreateTaskTest::class.java)
+            startActivity(intent)
         }
-
         binding.viewTask.setOnClickListener {
             val intent = Intent(this, TaskActivity::class.java)
             startActivity(intent)
@@ -97,18 +100,26 @@ class MainActivity : AppCompatActivity() {
         val currentDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date())
         val currentUserId = firebaseAuth.currentUser?.uid ?: return
 
-
         firebaseDatabase.child("tasks").orderByChild("userId").equalTo(currentUserId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    var taskCountToday = 0
+                    var totalTasksToday = 0
+                    var completedTasksToday = 0
+
                     for (taskSnapshot in snapshot.children) {
                         val task = taskSnapshot.getValue(Task::class.java)
                         if (task?.date == currentDate) {
-                            taskCountToday++
+                            totalTasksToday++
+                            if (task != null) {
+                                if (task.status == "done") {
+                                    completedTasksToday++
+                                }
+                            }
                         }
                     }
-                    binding.numberOftask.text = "$taskCountToday" // Update number of tasks
+
+                    // Update the TextView to show completed tasks / total tasks for today
+                    binding.numberOftask.text = "$completedTasksToday/$totalTasksToday"
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -116,6 +127,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
     }
+
 
     private fun loadPomodoroDuration() {
         val currentUserId = firebaseAuth.currentUser?.uid ?: return
