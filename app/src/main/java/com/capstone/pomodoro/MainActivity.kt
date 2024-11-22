@@ -97,7 +97,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadTasksCountForToday() {
-        val currentDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).format(Date())
+        // Set the time zone to Asia/Manila
+        val timeZone = TimeZone.getTimeZone("Asia/Manila")
+        val currentDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        currentDateFormat.timeZone = timeZone
+        val currentDate = currentDateFormat.format(Date())  // Get current date in Asia/Manila time zone
+
         val currentUserId = firebaseAuth.currentUser?.uid ?: return
 
         firebaseDatabase.child("tasks").orderByChild("userId").equalTo(currentUserId)
@@ -111,7 +116,7 @@ class MainActivity : AppCompatActivity() {
                         if (task?.date == currentDate) {
                             totalTasksToday++
                             if (task != null) {
-                                if (task.status == "done") {
+                                if (task.status == "Done") {
                                     completedTasksToday++
                                 }
                             }

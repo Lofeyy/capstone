@@ -133,14 +133,14 @@ class AnalyticsTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
 
                     // Set dynamic task title
                     holder.taskTitle.text = task.title // Dynamically set the task title
-                    holder.sessionsCount.text = task.session // Dynamically set the task title
+                    holder.sessionsCount.text = task.sessions // Dynamically set the task title
                     holder.taskDuration.text = task.duration
 
                     // Set a click listener on the task item
                     holder.itemView.setOnClickListener {
                         val intent = Intent(it.context, ViewTaskActivity::class.java)
-                        intent.putExtra("TASK_ID", task.id ?: "unknown_id")
-                        Log.d("TaskAnalytics", "Task clicked, ID: ${task.id}") // Log the task ID for debugging
+                        intent.putExtra("TASK_ID", task.taskId ?: "unknown_id")
+                        Log.d("TaskAnalytics", "Task clicked, ID: ${task.taskId}") // Log the task ID for debugging
                         it.context.startActivity(intent) // Start the new activity
                     }
                 }

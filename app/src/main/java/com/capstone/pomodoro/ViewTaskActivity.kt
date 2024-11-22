@@ -19,31 +19,31 @@ class ViewTaskActivity : AppCompatActivity() {
     private lateinit var dateTextView: TextView
     private lateinit var estimatedPomodoroTextView: TextView
     private lateinit var actualPomodoroTextView: TextView
-    private lateinit var estimatedDurationTextView: TextView  // Added for estimated duration
+    private lateinit var estimatedDurationTextView: TextView
+    private lateinit var actualDurationValue: TextView // Added for estimated duration
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_view_task)
-
-        // Initialize the UI elements
         academicTaskTextView = findViewById(R.id.academicTaskView)
         priorityTextView = findViewById(R.id.priorityTextView)
         statusTextView = findViewById(R.id.statustextview)
         dateTextView = findViewById(R.id.dateText)
         estimatedPomodoroTextView = findViewById(R.id.estimatedpomodorotextview)
-        actualPomodoroTextView = findViewById(R.id.actualpomodoroTextview)  // Update this line to the correct ID
-        estimatedDurationTextView = findViewById(R.id.estimatedDurationValue)  // Added this view
+        actualPomodoroTextView = findViewById(R.id.actualpomodoroTextview)
+        estimatedDurationTextView = findViewById(R.id.estimatedDurationValue)
+        actualDurationValue = findViewById(R.id.actualDurationValue)
 
-        // Get the task ID from the Intent
         val taskId = intent.getStringExtra("TASK_ID") ?: return
         Log.d("TaskActivity", "Retrieved taskId: $taskId")
-        // Initialize Firebase database reference
+
         database = FirebaseDatabase.getInstance().reference
 
         // Fetch the task details from Firebase
         database.child("tasks").child(taskId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
-                // Extract task details from the snapshot
+
                 val academicTask = snapshot.child("academicTask").value.toString()
                 val priority = snapshot.child("priority").value.toString()
                 val sessions = snapshot.child("sessions").value.toString()
@@ -60,9 +60,16 @@ class ViewTaskActivity : AppCompatActivity() {
                 priorityTextView.text = priority
                 statusTextView.text = status
                 dateTextView.text = submissionDate
+                estimatedDurationTextView.text =  suggestedDuration
+                // Check if sessions is valid or null
+                if (sessions.isNullOrEmpty() || !sessions.contains("/")) {
 
-                // Check if sessions is valid
-                if (sessions.isNotEmpty() && sessions.contains("/")) {
+                    actualPomodoroTextView.text = "0"
+                    val estimatedPomodoro = suggestedDuration.toIntOrNull()?.div(25) ?: 0
+                    estimatedPomodoroTextView.text = estimatedPomodoro.toString()
+                    Toast.makeText(this, "Session data is missing or malformed", Toast.LENGTH_SHORT).show()
+                } else {
+                    // If sessions are valid, split and calculate Pomodoros
                     val sessionParts = sessions.split("/")
                     if (sessionParts.size == 2) {
                         try {
@@ -71,27 +78,22 @@ class ViewTaskActivity : AppCompatActivity() {
 
                             // Calculate the actual duration (25 minutes per pomodoro)
                             val actualDuration = actualPomodoros * 25
-
-                            // Update the pomodoro widgets
+                            actualDurationValue.text =  "$actualDuration mins"
+                            // Update the Pomodoro widgets
                             estimatedPomodoroTextView.text = "$estimatedPomodoros"
                             actualPomodoroTextView.text = "$actualPomodoros"
 
                         } catch (e: NumberFormatException) {
                             // Handle invalid number format
                             Toast.makeText(this, "Invalid session data format", Toast.LENGTH_SHORT).show()
+                            actualPomodoroTextView.text = "0"  // Set to 0 if format is invalid
+                            estimatedPomodoroTextView.text = "0"  // Set to 0 if format is invalid
                         }
                     } else {
                         Toast.makeText(this, "Invalid session format", Toast.LENGTH_SHORT).show()
+                        actualPomodoroTextView.text = "0"  // Set to 0 if session format is invalid
+                        estimatedPomodoroTextView.text = "0"  // Set to 0 if session format is invalid
                     }
-                } else {
-                    Toast.makeText(this, "Session data is missing or malformed", Toast.LENGTH_SHORT).show()
-                }
-
-                // Handle empty or invalid suggestedDuration
-                if (suggestedDuration.isNotEmpty() && suggestedDuration.isDigitsOnly()) {
-                    estimatedDurationTextView.text = "$suggestedDuration mins"
-                } else {
-                    estimatedDurationTextView.text = "Estimated Duration: Not Available"
                 }
 
             } else {

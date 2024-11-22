@@ -138,7 +138,7 @@ class PomodoroActivity : AppCompatActivity() {
                         if (durationIntent != null) {
                             val intentDuration = durationIntent.toLongOrNull() ?: 25L // Default to 25 if conversion fails
                             Log.d("MainActivity", "Duration from intent: $intentDuration")
-                            pomodoroTimerMinutes.text ="$intentDuration"
+                            pomodoroTimerMinutes.text ="25"
 
                             setupPomodoroSession(intentDuration) // Setup the session with intent duration
                         } else {
@@ -150,7 +150,7 @@ class PomodoroActivity : AppCompatActivity() {
                                 val totalSeconds = duration / 1000
                                 val minutes = (totalSeconds / 60).toInt()
                                 pomodoroTimerMinutes.text = String.format("%02d", minutes)
-                                setupPomodoroSession(pomodoroDuration) // Setup the session with retrieved duration
+                                setupPomodoroSession(pomodoroDuration)
                             } // Set the retrieved duration
 
                         }
@@ -170,6 +170,35 @@ class PomodoroActivity : AppCompatActivity() {
 
     @SuppressLint("SuspiciousIndentation")
     private fun setupPomodoroSession(taskDuration: Long) {
+        val durationInMillis = taskDuration * 60 * 1000
+
+
+        // Calculate total sessions
+        totalSessions = (durationInMillis / pomodoroDuration).toInt() // Number of full 25-minute sessions
+        if (durationInMillis % pomodoroDuration > 0) {
+            totalSessions += 1 // Add one session for any leftover time
+        }
+
+        // Set initial session state
+        sessionCount = 1
+        sessionTextView.text = "$sessionCount/$totalSessions"
+
+        // Calculate remaining time for the current session
+        remainingSessionTime = if (durationInMillis > pomodoroDuration) {
+            durationInMillis % pomodoroDuration
+        } else {
+            0 // No remaining time if task fits in one session
+        }
+
+        // Set the total time for the first session (25 minutes or less if it's the last session)
+        totalTimeInMillis = if (taskDuration <= 25) durationInMillis else pomodoroDuration
+        timeLeftInMillis = totalTimeInMillis
+
+        // Set initial state
+        updateFocusState()
+    }
+    @SuppressLint("SuspiciousIndentation")
+    private fun setupPomodoroSessionDefault(taskDuration: Long) {
 
         if (taskDuration > pomodoroDuration) {
             totalSessions = 2 // 2 sessions (25 + remaining time)
@@ -313,8 +342,8 @@ private fun startBreakSession(){
         builder.setPositiveButton("Yes") { dialog, _ ->
             val trimmedTaskId = taskId.trim()
             Log.d("UpdateTask", "Attempting to update status for task ID: '$trimmedTaskId'")
-            addSessionToFirebase(trimmedTaskId,sessionCount - 1,totalSessions)
-            updateTaskStatus(trimmedTaskId, "done")
+            addSessionToFirebase(trimmedTaskId,sessionCount ,totalSessions)
+            updateTaskStatus(trimmedTaskId, "Done")
             stopService(intent)
             dialog.dismiss()
             finish()

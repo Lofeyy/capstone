@@ -11,16 +11,20 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class CreateTaskTest : AppCompatActivity() {
 
@@ -36,7 +40,7 @@ class CreateTaskTest : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_create_task) // Update with actual layout file name
+        setContentView(R.layout.activity_create_task)
 
         firebaseAuth = FirebaseAuth.getInstance()
         firebaseDatabase = FirebaseDatabase.getInstance().reference
@@ -47,7 +51,7 @@ class CreateTaskTest : AppCompatActivity() {
         buttonCreateTask = findViewById(R.id.buttonCreateTask)
         spinnerPriority = findViewById(R.id.spinnerPriority)
 
-        // Set up the academic tasks spinner
+
         val priorityOptions = arrayOf("Low", "Medium", "High")
         val priorityAdapter = object : ArrayAdapter<String>(this, R.layout.spinner_item_material, priorityOptions) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -61,10 +65,10 @@ class CreateTaskTest : AppCompatActivity() {
             }
         }
 
-        // Set the adapter to the spinner
+
         spinnerPriority.adapter = priorityAdapter
 
-        // Set up the academic task spinner
+
         val academicTaskOptions = arrayOf("Researching", "Reviewing", "Reading", "Writing", "Assignments")
         val academicTaskAdapter = object : ArrayAdapter<String>(this, R.layout.spinner_item_material, academicTaskOptions) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -145,7 +149,7 @@ class CreateTaskTest : AppCompatActivity() {
     private fun suggestScheduleAndSaveTask() {
         val taskName = editTextTaskName.text.toString().trim()
         val submissionDate = editTextSubmissionDate.text.toString().trim()
-
+        val priority = selectedPriority
         if (taskName.isEmpty() || submissionDate.isEmpty() || selectedAcademicTask.isEmpty() || selectedPriority.isEmpty()) {
             Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
             return
@@ -157,11 +161,10 @@ class CreateTaskTest : AppCompatActivity() {
         firebaseDatabase.child("tasks").orderByChild("userId").equalTo(userId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
                 val doneTasks = snapshot.children.filter {
-                    it.child("status").value == "done" &&
+                    it.child("status").value == "Done" &&
                             it.child("academicTask").value == selectedAcademicTask
                 }
                 if (doneTasks.size >= 10) {
-                    // If there are 10 or more "done" tasks, calculate average session time if academicTask exists
                     calculateSuggestedDurationFromSessions(userId, selectedAcademicTask) { suggestedDuration ->
                         fetchUserScheduleAndSuggestTask(userId, submissionDate, taskName, suggestedDuration)
                     }
@@ -181,10 +184,8 @@ class CreateTaskTest : AppCompatActivity() {
             Toast.makeText(this, "Failed to fetch tasks: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
-
-
     private fun fetchUserScheduleAndSuggestTask(userId: String, submissionDate: String, taskName: String, suggestedDuration: String) {
-        // Fetch the user schedule from Firebase
+
         firebaseDatabase.child("user_schedule").child(userId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
                 val weekdaysStart = snapshot.child("week_days_start").value.toString()
@@ -202,7 +203,7 @@ class CreateTaskTest : AppCompatActivity() {
                     Pair(weekdaysStart, weekdaysEnd)
                 }
 
-                fetchExistingTasks(userId, submissionDate, start, end, suggestedDuration, taskName)
+                fetchExistingTasks(userId, submissionDate, start, end, suggestedDuration, taskName ,selectedPriority)
             } else {
                 Toast.makeText(this, "User schedule not found", Toast.LENGTH_SHORT).show()
             }
@@ -210,6 +211,7 @@ class CreateTaskTest : AppCompatActivity() {
             Toast.makeText(this, "Failed to fetch user schedule: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
     private fun calculateSuggestedDurationFromSessions(userId: String, academicTask: String, callback: (String) -> Unit) {
         firebaseDatabase.child("tasks").orderByChild("userId").equalTo(userId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
@@ -222,7 +224,7 @@ class CreateTaskTest : AppCompatActivity() {
                     val taskStatus = task.child("status").value.toString()
 
                     // Check if task matches academicTask and has "done" status
-                    if (taskAcademic == academicTask && taskStatus == "done") {
+                    if (taskAcademic == academicTask && taskStatus == "Done") {
                         totalTaskCount++ // Increment the total task count
                         val sessions = task.child("sessions").value?.toString() ?: "0" // Default to "0" if sessions is null
                         if (sessions.isNotEmpty() && sessions.contains("/")) { // Check if sessions is in the correct format
@@ -256,107 +258,221 @@ class CreateTaskTest : AppCompatActivity() {
             Toast.makeText(this, "Failed to fetch tasks: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
-    private fun fetchExistingTasks(userId: String, submissionDate: String, start: String, end: String, suggestedDuration: String, taskName: String) {
-        val todayDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
-        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+    private fun fetchExistingTasks(
+        userId: String,
+        submissionDate: String,
+        start: String,
+        end: String,
+        suggestedDuration: String,
+        taskName: String,
+        priority: String
+    ) {
+        val manilaTimeZone = TimeZone.getTimeZone("Asia/Manila")
+        val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).apply { timeZone = manilaTimeZone }
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = manilaTimeZone }
 
-        // Define adjusted start time, defaulting to the provided start time
-        var adjustedStart = start
+        val todayDate = dateFormat.format(Date())
+        val currentTime = timeFormat.format(Date())
+        var adjustedStart = convertTo24HourFormat(start)
+        val suggestedDurationInMinutes = suggestedDuration.toIntOrNull() ?: 0
 
-        // Validate if submission date is today
-        if (submissionDate == todayDate) {
-            // Ensure the start time is not in the past
-            if (start <= currentTime) {
-                adjustedStart = currentTime
-            }
+        // Adjust start time if submission date is today and start time is in the past
+        if (submissionDate == todayDate && adjustedStart <= currentTime) {
+            adjustedStart = currentTime
         }
+
+        // Calculate the adjusted end time
+        val adjustedStartDate = timeFormat.parse(adjustedStart)
+        val adjustedEndDate = Calendar.getInstance().apply {
+            time = adjustedStartDate
+            add(Calendar.MINUTE, suggestedDurationInMinutes)
+        }.time
+        val adjustedEnd = timeFormat.format(adjustedEndDate)
+
+        // Check if the adjusted end time exceeds the provided end time or if the duration is too long
+//        if (adjustedEnd > convertTo24HourFormat(end)) {
+//            Toast.makeText(
+//                this,
+//                "No available timeslot for today. Suggested duration exceeds available time.",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            return
+//        }
 
         firebaseDatabase.child("tasks").orderByChild("submissionDate").equalTo(submissionDate).get()
             .addOnSuccessListener { snapshot ->
-                var newSuggestedTimeSlot = adjustedStart // Default to adjusted start time
-                var isConflict = false
+                var newSuggestedTimeSlot = adjustedStart
 
                 if (snapshot.exists()) {
-                    val existingTasks = snapshot.children
+                    val tasksByPriority = mapOf(
+                        "High" to mutableListOf<DataSnapshot>(),
+                        "Medium" to mutableListOf<DataSnapshot>(),
+                        "Low" to mutableListOf<DataSnapshot>()
+                    )
 
-                    // Check if there's a conflict with existing tasks
-                    for (task in existingTasks) {
-                        val existingSuggestedTimeSlot = task.child("suggestedTimeSlot").value.toString()
-                        val existingSuggestedDuration = task.child("suggestedDuration").value.toString()
-                        val existingDurationInMinutes = existingSuggestedDuration.replace(" mins", "").toInt()
-
-                        // Check for time slot conflict
-                        if (existingSuggestedTimeSlot == newSuggestedTimeSlot) {
-                            isConflict = true
-                            // Adjust suggested time slot (e.g., add the existing duration)
-                            newSuggestedTimeSlot = suggestNextAvailableTimeSlot(existingSuggestedTimeSlot, existingDurationInMinutes, suggestedDuration.replace(" mins", "").toInt())
-                        }
+                    snapshot.children.forEach { task ->
+                        val taskPriority = task.child("priority").value.toString()
+                        tasksByPriority[taskPriority]?.add(task)
                     }
 
-                    // If there's still a conflict after adjustments, keep adjusting until we find a free slot
-                    while (isConflict) {
-                        isConflict = false
-                        for (task in existingTasks) {
-                            val existingSuggestedTimeSlot = task.child("suggestedTimeSlot").value.toString()
-                            val existingSuggestedDuration = task.child("suggestedDuration").value.toString()
-                            val existingDurationInMinutes = existingSuggestedDuration.replace(" mins", "").toInt()
-
-                            // Check for time slot conflict again
-                            if (existingSuggestedTimeSlot == newSuggestedTimeSlot) {
-                                isConflict = true
-                                newSuggestedTimeSlot = suggestNextAvailableTimeSlot(newSuggestedTimeSlot, existingDurationInMinutes, suggestedDuration.replace(" mins", "").toInt())
-                                break // Exit the loop to re-check all tasks
-                            }
-                        }
+                    // Adjust time slots for tasks based on priority
+                    if (priority == "High") {
+                        newSuggestedTimeSlot = adjustPriorityTimeSlots(
+                            tasksByPriority["High"]!!, newSuggestedTimeSlot, false, "earlier"
+                        )
+                        newSuggestedTimeSlot = adjustPriorityTimeSlots(
+                            tasksByPriority["Medium"]!!, newSuggestedTimeSlot, false, "after"
+                        )
                     }
 
-                    // Save task to database with the adjusted time slot
+                    // For Medium priority
+                    if (priority == "Medium") {
+                        newSuggestedTimeSlot = adjustPriorityTimeSlots(
+                            tasksByPriority["Medium"]!!, newSuggestedTimeSlot, false, "after"
+                        )
+                    }
+
+                    // For Low priority tasks, check if there are existing tasks with the same priority
+                    if (priority == "Low") {
+                        newSuggestedTimeSlot = adjustLowPriorityTasks(tasksByPriority["Low"]!!, newSuggestedTimeSlot, false)
+                    }
+
                     saveTaskToDatabase(taskName, newSuggestedTimeSlot, suggestedDuration, submissionDate, userId)
                 } else {
-                    // No existing tasks, safe to proceed with the suggested time slot
-                    val adjustedTimeSlot = suggestedDuration + applyRandomAdjustment(start)
-                    saveTaskToDatabase(taskName, adjustedTimeSlot, suggestedDuration, submissionDate, userId)
+                    saveTaskToDatabase(taskName, newSuggestedTimeSlot, suggestedDuration, submissionDate, userId)
                 }
-            }.addOnFailureListener { e ->
+            }
+            .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to fetch existing tasks: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun applyRandomAdjustment(time: String): String {
-        val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val calendar = Calendar.getInstance()
-        calendar.time = dateFormat.parse(time)!!
 
-        // Generate a random number between 10 and 16 minutes
-        val randomMinutes = (10..16).random()
-        calendar.add(Calendar.MINUTE, randomMinutes)
-
-        return dateFormat.format(calendar.time)
-    }
-
-    // Function to suggest the next available time slot based on existing tasks
-    private fun suggestNextAvailableTimeSlot(
-        existingTimeSlot: String,
-        existingDurationInMinutes: Int,
-        suggestedDurationInMinutes: Int
+    private fun adjustPriorityTimeSlots(
+        tasks: List<DataSnapshot>,
+        initialTimeSlot: String,
+        isPassTime: Boolean,
+        priorityOrder: String
     ): String {
-        val timeFormat24Hour = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val calendar = Calendar.getInstance()
+        var adjustedTimeSlot = initialTimeSlot
+        var isConflict = false
 
-        // Parse the existing time slot and add the existing task's duration
-        calendar.time = timeFormat24Hour.parse(existingTimeSlot)!!
-        calendar.add(Calendar.MINUTE, existingDurationInMinutes)
+        // Ensure tasks are placed in the correct order with no conflicts
+        tasks.forEach { task ->
+            val taskDuration = task.child("suggestedDuration").value.toString().replace(" mins", "").toInt()
+            val taskStartTime = task.child("suggestedTimeSlot").value.toString()
 
-        // Add the suggested task's duration to find the next available time
-        calendar.add(Calendar.MINUTE, suggestedDurationInMinutes)
-        return timeFormat24Hour.format(calendar.time)
+            when (priorityOrder) {
+                "earlier" -> {
+                    if (adjustedTimeSlot > taskStartTime) {
+                        adjustedTimeSlot = subtractDurationFromTime(taskStartTime, taskDuration)
+                        task.ref.child("suggestedTimeSlot").setValue(adjustedTimeSlot)
+                    }
+                }
+                "after" -> {
+                    // Move the new task after the current task's end time
+                    val taskEndTime = addDurationToTime(taskStartTime, taskDuration)
+                    adjustedTimeSlot = addDurationToTime(taskEndTime, taskDuration) // Adding 5 minutes buffer to avoid overlap
+
+                    // Ensure no conflicts with existing tasks
+                    isConflict = checkForConflict(tasks, adjustedTimeSlot, taskDuration)
+                    while (isConflict) {
+                        adjustedTimeSlot = addDurationToTime(adjustedTimeSlot, taskDuration) // Increment by task duration
+                        isConflict = checkForConflict(tasks, adjustedTimeSlot, taskDuration)
+                    }
+                }
+            }
+        }
+
+        return adjustedTimeSlot
     }
 
+    private fun checkForConflict(
+        existingTasks: List<DataSnapshot>,
+        newSuggestedTimeSlot: String,
+        taskDuration: Int
+    ): Boolean {
+        val newStartMinutes = convertTimeSlotToMinutes(newSuggestedTimeSlot)
+        val newEndMinutes = newStartMinutes + taskDuration
+
+        for (task in existingTasks) {
+            val existingSuggestedTimeSlot = task.child("suggestedTimeSlot").value.toString()
+            val existingSuggestedDuration = task.child("suggestedDuration").value.toString()
+            val existingDurationInMinutes = existingSuggestedDuration.replace(" mins", "").toInt()
+
+            val existingStartMinutes = convertTimeSlotToMinutes(existingSuggestedTimeSlot)
+            val existingEndMinutes = existingStartMinutes + existingDurationInMinutes
+
+            if (newEndMinutes > existingStartMinutes && newStartMinutes < existingEndMinutes) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun addDurationToTime(time: String, duration: Int): String {
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val calendar = Calendar.getInstance()
+        calendar.time = timeFormat.parse(time)!!
+        calendar.add(Calendar.MINUTE, duration)
+        calendar.add(Calendar.MINUTE, 15)
+        return timeFormat.format(calendar.time)
+    }
+
+    private fun subtractDurationFromTime(time: String, duration: Int): String {
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val calendar = Calendar.getInstance()
+        calendar.time = timeFormat.parse(time)!!
+        calendar.add(Calendar.MINUTE, -duration)
+        return timeFormat.format(calendar.time)
+    }
+    private fun adjustLowPriorityTasks(
+        existingLowPriorityTasks: List<DataSnapshot>,
+        initialTimeSlot: String,
+        isPassTime: Boolean
+    ): String {
+        var adjustedTimeSlot = initialTimeSlot
+
+        // Check if any tasks with Low priority exist
+        if (existingLowPriorityTasks.isNotEmpty()) {
+            val lastLowPriorityTask = existingLowPriorityTasks.last()
+            val lastLowPriorityTaskDuration = lastLowPriorityTask.child("suggestedDuration").value.toString().replace(" mins", "").toInt()
+            val lastLowPriorityTaskEndTime = addDurationToTime(
+                lastLowPriorityTask.child("suggestedTimeSlot").value.toString(),
+                lastLowPriorityTaskDuration
+            )
+
+            // Insert new Low priority task after the last Low priority task
+            adjustedTimeSlot = lastLowPriorityTaskEndTime
+        }
+
+        return adjustedTimeSlot
+    }
+
+    private fun convertTimeSlotToMinutes(timeSlot: String): Int {
+        val (hours, minutes) = timeSlot.split(":").map { it.toInt() }
+        return hours * 60 + minutes
+    }
 
     private fun randomOf(vararg values: Int): Int {
         return values[(values.indices).random()]
     }
 
+    private fun convertTo24HourFormat(timeSlot: String): String {
+        // Define the expected time format (24-hour format)
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val date: Date
+
+        try {
+            // Parse the time slot string into a Date object
+            date = sdf.parse(timeSlot) ?: throw ParseException("Invalid time format", 0)
+        } catch (e: ParseException) {
+            throw ParseException("Unparseable date: $timeSlot", 0)
+        }
+
+        // Return the formatted time as a string in 24-hour format
+        return SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+    }
 
 
     private fun calculateSuggestedDuration(userId: String, academicTask: String, callback: (String) -> Unit) {
@@ -381,7 +497,7 @@ class CreateTaskTest : AppCompatActivity() {
                 )
 
                 // Initialize variable to track the suggested duration
-                var suggestedDuration = "2 mins" // Fallback duration
+                var suggestedDuration = "25 mins" // Fallback duration
 
                 // Determine the suggested duration based on the academic task and priorities
                 priorities.forEachIndexed { index, priority ->

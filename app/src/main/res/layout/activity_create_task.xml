@@ -1,4 +1,3 @@
-<!-- res/layout/fragment_task_list.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -60,8 +59,7 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginBottom="25dp"
-
-        android:spinnerMode="dropdown" />
+        android:popupBackground="@android:color/transparent" />
 
     <TextView
         android:layout_width="match_parent"
@@ -70,7 +68,6 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"
-
         android:layout_marginBottom="4dp"/>
 
     <EditText
@@ -102,8 +99,7 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginBottom="25dp"
-
- />
+        android:popupBackground="@android:color/transparent" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonCreateTask"
@@ -111,7 +107,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Create Task"
-
+        android:textColor="@color/white"
         android:backgroundTint="@color/button_color"
         app:icon="@drawable/baseline_add_circle_24"
         app:iconTint="#FFFFFF"

@@ -51,36 +51,49 @@ class RegisterActivity : AppCompatActivity() {
     private fun validateInput(username: String, email: String, password: String, confirmPassword: String): Boolean {
         var isValid = true
 
+        // Validate username
         if (username.isEmpty()) {
             binding.usernameEditText.error = "Username is required"
             isValid = false
         }
 
+        // Validate email
         if (email.isEmpty()) {
             binding.emailEditText.error = "Email is required"
             isValid = false
         }
 
+        // Validate password
         if (password.isEmpty()) {
             binding.passwordEditText.error = "Password is required"
             isValid = false
-        }
-
-        if (confirmPassword.isEmpty()) {
-            binding.confirmPasswordEditText.error = "Confirm Password is required"
+        } else if (!isPasswordValid(password)) {
+            binding.passwordEditText.error = "Password must be at least 8 characters, include 1 uppercase, 1 lowercase, 1 number, and 1 special character"
             isValid = false
         }
 
-        if (password != confirmPassword) {
+        // Validate confirm password
+        if (confirmPassword.isEmpty()) {
+            binding.confirmPasswordEditText.error = "Confirm Password is required"
+            isValid = false
+        } else if (password != confirmPassword) {
             binding.confirmPasswordEditText.error = "Passwords do not match"
             isValid = false
         }
 
+        // Show Toast if any validation fails
         if (!isValid) {
-            Toast.makeText(this, "Please fill all the fields", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Please fill all the fields correctly", Toast.LENGTH_SHORT).show()
         }
 
         return isValid
+    }
+
+    private fun isPasswordValid(password: String): Boolean {
+        // Regular expression to check for password criteria
+        val passwordPattern = "(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#\$%^&*(),.?\":{}|<>]).{8,}"
+        val pattern = Regex(passwordPattern)
+        return password.matches(pattern)
     }
 
     private fun registerUser(username: String, email: String, password: String) {

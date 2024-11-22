@@ -385,11 +385,11 @@
             android:background="#2D305B">
 
             <TextView
-                android:id="@+id/estimatedDurationValue"
+                android:id="@+id/actualDurationValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="50 mins"
+                android:text=""
                 android:textColor="@color/secondary_dark"
                 android:textSize="20sp"
                 android:textStyle="bold"
@@ -432,11 +432,11 @@
             android:background="#2D305B">
 
             <TextView
-                android:id="@+id/actualDurationValue"
+                android:id="@+id/estimatedDurationValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="25 mins"
+                android:text=""
                 android:textColor="@color/secondary_dark"
                 android:textSize="20sp"
                 android:textStyle="bold"

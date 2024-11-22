@@ -23,7 +23,7 @@ class TaskActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.fragment_task_list) // Use your layout here
+        setContentView(R.layout.fragment_task_list)
 
         // Initialize RecyclerView
         recyclerView = findViewById(R.id.recyclerView)
@@ -54,7 +54,7 @@ class TaskActivity : AppCompatActivity() {
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     tasks.clear()
-                    val today = dateFormat.format(Date()) // Get today's date as a string
+                    val today = dateFormat.format(Date()) // Get today's date as a string in "MM/dd/yyyy" format
                     val tasksToUpdate = mutableListOf<Task>()
 
                     for (taskSnapshot in snapshot.children) {
@@ -64,18 +64,33 @@ class TaskActivity : AppCompatActivity() {
                         task?.let {
                             it.id = taskSnapshot.key ?: ""  // Assigning the Firebase key to the task ID
 
-                            // Only add tasks that are not "done"
-                            if (it.status != "done") {
-                                tasks.add(it)
-                                if (it.date == today) {
-                                    tasksToUpdate.add(it) // Collect tasks due today for updating
+                            // Ensure that task.date is in the "MM/dd/yyyy" format for comparison
+                            val taskDate = formatTaskDate(it.date)  // Method to extract only the date part
+
+                            // Only process tasks with status "notStarted" or "done"
+                            if (it.status == "notStarted" ) {
+                                // Check if the task is not done and if the task date has passed
+                                if (it.status == "notStarted" && taskDate.isNotEmpty()) {
+                                    // Parse the task's date for comparison (without time)
+                                    val taskDateParsed = dateFormat.parse(taskDate)
+                                    val currentDate = dateFormat.parse(today)
+
+                                    // If taskDate is before current date, update status to "Missed"
+                                    if (taskDateParsed != null && taskDateParsed.before(currentDate)) {
+                                        // Update the status to "Missed" in Firebase
+                                        val taskRef = firebaseDatabase.child(taskSnapshot.key ?: "")
+                                        taskRef.child("status").setValue("Missed")
+
+                                        // Add to tasksToUpdate list to refresh UI if needed
+                                        tasksToUpdate.add(it)
+                                    }
                                 }
+
+                                // Add tasks to the list for UI update
+                                tasks.add(it)
                             }
                         }
                     }
-
-//                    // Update tasks due today
-//                    updateTaskDates(tasksToUpdate)
 
                     // Group tasks by date and sort them
                     val groupedTasks = groupTasksByDateAndSort(tasks)
@@ -94,23 +109,25 @@ class TaskActivity : AppCompatActivity() {
             })
     }
 
-    private fun updateTaskDates(tasksToUpdate: List<Task>) {
-        for (task in tasksToUpdate) {
-            val newDate = Calendar.getInstance().apply {
-                time = dateFormat.parse(task.date) ?: Date()
-                add(Calendar.DAY_OF_YEAR, 1) // Increment date by 1 day
-            }.time
 
-            val updatedDateString = dateFormat.format(newDate)
 
-            // Update the task in the database
-            firebaseDatabase.child(task.id).child("submissionDate").setValue(updatedDateString)
-                .addOnSuccessListener {
-                    Log.d("TaskActivity", "Updated Task: ${task.title} to new date: $updatedDateString")
-                }
-                .addOnFailureListener { e ->
-                    Log.e("TaskActivity", "Failed to update task date", e)
-                }
+    // Helper method to format task date to "MM/dd/yyyy"
+    private fun formatTaskDate(taskDate: String): String {
+        return try {
+            val taskDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+
+            // Directly parse the taskDate if it's already in MM/dd/yyyy format.
+            val parsedDate = taskDateFormat.parse(taskDate)
+
+            // Return formatted date without time
+            taskDateFormat.format(parsedDate ?: Date())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""  // Return empty string if parsing fails
         }
     }
+
+
+
+
 }

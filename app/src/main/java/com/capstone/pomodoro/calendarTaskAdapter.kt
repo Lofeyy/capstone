@@ -72,7 +72,18 @@ class CalendartTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
                     holder as TaskViewHolder // Cast holder to TaskViewHolder
                     holder.taskTitle.text = task.title
                     holder.taskDuration.text = task.duration
-                    holder.taskTimeSlot.text = task.timeSlot
+
+                    // Format the time slot to 12-hour format
+                    val originalTimeSlot = task.timeSlot // Assuming task.timeSlot is in 24-hour format, e.g., "22:00"
+                    val formattedTimeSlot = try {
+                        val originalFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                        val targetFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                        val date = originalFormat.parse(originalTimeSlot)
+                        targetFormat.format(date)
+                    } catch (e: Exception) {
+                        originalTimeSlot // Fallback to the original value if parsing fails
+                    }
+                    holder.taskTimeSlot.text = formattedTimeSlot
 
                     // Set the priority indicator color
                     when (task.priority) {
@@ -81,58 +92,25 @@ class CalendartTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
                         "High" -> holder.priorityIndicator.setBackgroundResource(R.drawable.circle_high_priority)
                     }
 
-
-
-                    // Assuming `task` has a `date` property as a String (formatted as "dd/MM/yyyy") and a `status` property
+                    // Status handling logic remains unchanged
                     val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
                     val taskDated = dateFormat.parse(task.date)
                     val currentDated = Date()
 
-// Subtract one day from the current date to check for missed tasks
                     val calendartask = Calendar.getInstance()
                     calendartask.time = currentDated
                     calendartask.add(Calendar.DAY_OF_YEAR, -1)
                     val currentDatedMinusOne = calendartask.time
 
                     if (task.status == "notStarted") {
-                        // Check if the task date is before the current date minus one day
-                        if (taskDated != null && taskDated.before(currentDatedMinusOne)) {
-                            holder.statusText.text = "Missed"
-                        } else {
+
                             holder.statusText.text = "Pending"
-                        }
-                    } else {
+
+                    } else if (task.status == "Done")  {
                         holder.statusText.text = "Done"
+                    }else{
+                        holder.statusText.text = "Missed"
                     }
-
-
-                    // Parse the task date (MM/dd/yyyy format)
-                    val taskDate = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()).parse(task.date) ?: Date()
-
-                    // Get the current date
-                    val currentDate = Date()
-                    val calendar = Calendar.getInstance()
-
-                    // Set to the start of today (00:00:00)
-                    calendar.time = currentDate
-                    calendar.set(Calendar.HOUR_OF_DAY, 0)
-                    calendar.set(Calendar.MINUTE, 0)
-                    calendar.set(Calendar.SECOND, 0)
-                    calendar.set(Calendar.MILLISECOND, 0)
-
-                    // Get the start of today
-                    val startOfToday = calendar.time
-
-                    // Set to the end of today (23:59:59)
-                    calendar.set(Calendar.HOUR_OF_DAY, 23)
-                    calendar.set(Calendar.MINUTE, 59)
-                    calendar.set(Calendar.SECOND, 59)
-                    calendar.set(Calendar.MILLISECOND, 999)
-
-                    // Get the end of today
-                    val endOfToday = calendar.time
-
-
 
                     return // Exit since we handled this position
                 }
