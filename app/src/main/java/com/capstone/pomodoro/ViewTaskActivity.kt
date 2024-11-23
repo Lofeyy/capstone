@@ -67,7 +67,7 @@ class ViewTaskActivity : AppCompatActivity() {
                     actualPomodoroTextView.text = "0"
                     val estimatedPomodoro = suggestedDuration.toIntOrNull()?.div(25) ?: 0
                     estimatedPomodoroTextView.text = estimatedPomodoro.toString()
-                    Toast.makeText(this, "Session data is missing or malformed", Toast.LENGTH_SHORT).show()
+                    actualDurationValue.text =  "0 min"
                 } else {
                     // If sessions are valid, split and calculate Pomodoros
                     val sessionParts = sessions.split("/")

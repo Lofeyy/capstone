@@ -64,24 +64,24 @@ class TaskActivity : AppCompatActivity() {
                         task?.let {
                             it.id = taskSnapshot.key ?: ""  // Assigning the Firebase key to the task ID
 
-                            // Ensure that task.date is in the "MM/dd/yyyy" format for comparison
-                            val taskDate = formatTaskDate(it.date)  // Method to extract only the date part
 
-                            // Only process tasks with status "notStarted" or "done"
+                            val taskDate = formatTaskDate(it.date)
+
+
                             if (it.status == "notStarted" ) {
-                                // Check if the task is not done and if the task date has passed
+
                                 if (it.status == "notStarted" && taskDate.isNotEmpty()) {
-                                    // Parse the task's date for comparison (without time)
+
                                     val taskDateParsed = dateFormat.parse(taskDate)
                                     val currentDate = dateFormat.parse(today)
 
-                                    // If taskDate is before current date, update status to "Missed"
+
                                     if (taskDateParsed != null && taskDateParsed.before(currentDate)) {
-                                        // Update the status to "Missed" in Firebase
+
                                         val taskRef = firebaseDatabase.child(taskSnapshot.key ?: "")
                                         taskRef.child("status").setValue("Missed")
 
-                                        // Add to tasksToUpdate list to refresh UI if needed
+
                                         tasksToUpdate.add(it)
                                     }
                                 }

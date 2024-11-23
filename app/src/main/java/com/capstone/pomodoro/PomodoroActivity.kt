@@ -150,7 +150,7 @@ class PomodoroActivity : AppCompatActivity() {
                                 val totalSeconds = duration / 1000
                                 val minutes = (totalSeconds / 60).toInt()
                                 pomodoroTimerMinutes.text = String.format("%02d", minutes)
-                                setupPomodoroSession(pomodoroDuration)
+                                setupPomodoroSessionDefault(pomodoroDuration)
                             } // Set the retrieved duration
 
                         }
@@ -158,7 +158,7 @@ class PomodoroActivity : AppCompatActivity() {
                     }
                 } else {
                     Log.d("MainActivity", "No settings found for current user ID")
-                    setupPomodoroSession(25L) // Setup with default duration if no settings found
+                    setupPomodoroSessionDefault(25) // Setup with default duration if no settings found
                 }
 
             override fun onCancelled(error: DatabaseError) {

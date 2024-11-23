@@ -80,7 +80,7 @@ private fun sortTasksByPriority(tasks: List<Task>): List<Task> {
 
 class AnalyticsTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val dateList = groupedTasks.keys.toList().sortedDescending() // Sort the dates in descending order
+    private val dateList = groupedTasks.keys.toList().sortedDescending()
 
     companion object {
         private const val VIEW_TYPE_HEADER = 0
@@ -91,14 +91,14 @@ class AnalyticsTaskAdapter(private val groupedTasks: Map<String, List<Task>>) : 
         var count = 0
         for (date in dateList) {
             if (count == position) {
-                return VIEW_TYPE_HEADER // This is a header
+                return VIEW_TYPE_HEADER
             }
-            count++ // Count the header
+            count++
 
             val tasksForDate = groupedTasks[date] ?: emptyList()
-            count += tasksForDate.size // Count tasks for the current date
+            count += tasksForDate.size
         }
-        return VIEW_TYPE_TASK // Fallback (this should generally not happen)
+        return VIEW_TYPE_TASK
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
