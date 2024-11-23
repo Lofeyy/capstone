@@ -44,8 +44,8 @@ class PomodoroActivity : AppCompatActivity() {
     private var sessionCount = 0
     private var totalSessions = 0
     private var totalTimeInMillis: Long = 0
-    private var pomodoroDuration: Long = 25 * 60 * 1000 // Default: 25 minutes in milliseconds
-    private var shortBreakDuration: Long = 25 * 60 * 1000 // 5 minutes break in milliseconds
+    private var pomodoroDuration: Long = 25 * 60 * 1000
+    private var shortBreakDuration: Long = 5 * 60 * 1000
     private var taskdurationinsecond: Long =  0
     private var isBreakSession = true
     private var remainingSessionTime: Long = 0
@@ -315,7 +315,7 @@ private fun startBreakSession(){
     private fun pauseTimer() {
         timer?.cancel()
         isTimerRunning = false
-        showPauseDialog()
+        showPauseDialogNoSession()
     }
 
     private fun updateTimer(timeLeftInMillis: Long) {
@@ -334,8 +334,7 @@ private fun startBreakSession(){
         focusTextView.text = "Break"
         iconImageView.setImageResource(R.drawable.coffee)
     }
-
-    private fun showPauseDialog() {
+    private fun showPauseDialogNoSession() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Pause")
         builder.setMessage("Are you done?")
@@ -353,6 +352,27 @@ private fun startBreakSession(){
             startButton.setImageResource(R.drawable.ic_arrow)
 
                 startNextSession()
+        }
+        builder.create().show()
+    }
+    private fun showPauseDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Pause")
+        builder.setMessage("Are you done?")
+        builder.setPositiveButton("Yes") { dialog, _ ->
+            val trimmedTaskId = taskId.trim()
+            Log.d("UpdateTask", "Attempting to update status for task ID: '$trimmedTaskId'")
+            addSessionToFirebase(trimmedTaskId,sessionCount ,totalSessions)
+            updateTaskStatus(trimmedTaskId, "Done")
+            stopService(intent)
+            dialog.dismiss()
+            finish()
+        }
+        builder.setNegativeButton("No") { dialog, _ ->
+            dialog.dismiss()
+            startButton.setImageResource(R.drawable.ic_arrow)
+
+//                startNextSession()
         }
         builder.create().show()
     }
